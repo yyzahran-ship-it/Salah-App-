@@ -91,16 +91,17 @@ Answer "No" to all questions. Final rating: **4+**
 
 ## Support URL *
 
-Create a simple support page or use a GitHub Issues URL. Placeholder:
 ```
-https://github.com/yourusername/quran-app/issues
+https://github.com/yyzahran-ship-it/quran-app/issues
 ```
 
 ---
 
 ## Privacy Policy URL * (required for App Store)
 
-See `store/privacy_policy.md` — host it on GitHub Pages or any static site.
+```
+https://yyzahran-ship-it.github.io/quran-app/
+```
 
 ---
 

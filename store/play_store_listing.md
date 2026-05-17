@@ -107,7 +107,7 @@ quran, quran app, quran offline, quran memorization, hifz, quran reader, quran a
 ## Contact details
 
 - Email: yyzahran@gmail.com
-- Privacy policy URL: *(create a simple page — template in `store/privacy_policy.md`)*
+- Privacy policy URL: https://yyzahran-ship-it.github.io/quran-app/
 
 ---
 
