@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/theme/theme_provider.dart';
 import '../audio/audio_provider.dart';
 import '../audio/audio_repository.dart';
@@ -10,17 +11,16 @@ import '../audio/audio_repository.dart';
 // Persistent font size provider (syncs to SharedPreferences).
 class FontSizeNotifier extends Notifier<double> {
   static const _key = 'arabic_font_size';
-  static const _default = 26.0;
 
   @override
   double build() {
     _load();
-    return _default;
+    return kDefaultArabicFontSize;
   }
 
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
-    state = prefs.getDouble(_key) ?? _default;
+    state = prefs.getDouble(_key) ?? kDefaultArabicFontSize;
   }
 
   Future<void> set(double size) async {
@@ -44,9 +44,31 @@ class SettingsScreen extends ConsumerWidget {
     final fontSize = ref.watch(fontSizeProvider);
     final audio = ref.watch(audioProvider);
     final colors = Theme.of(context).colorScheme;
+    const goldColor = Color(0xFFB8860B);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        title: const Text('Settings'),
+        backgroundColor: const Color(0xFF1B6B3A),
+        foregroundColor: Colors.white,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: Container(
+            height: 2,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  goldColor,
+                  Color(0xFFD4AF37),
+                  goldColor,
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
       body: ListView(
         children: [
           // ── Appearance ────────────────────────────────────────────────────
@@ -59,7 +81,7 @@ class SettingsScreen extends ConsumerWidget {
               underline: const SizedBox.shrink(),
               items: const [
                 DropdownMenuItem(
-                    value: AppThemeMode.light, child: Text('Light')),
+                    value: AppThemeMode.light, child: Text('Light (Mushaf)')),
                 DropdownMenuItem(
                     value: AppThemeMode.dark, child: Text('Dark')),
                 DropdownMenuItem(
@@ -80,12 +102,37 @@ class SettingsScreen extends ConsumerWidget {
               max: 48,
               divisions: 16,
               label: fontSize.round().toString(),
+              activeColor: goldColor,
               onChanged: (v) => ref.read(fontSizeProvider.notifier).set(v),
             ),
             trailing: Text(
               '${fontSize.round()}',
               style: TextStyle(
                   fontWeight: FontWeight.bold, color: colors.primary),
+            ),
+          ),
+          // Font preview tile
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFDF6E3),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: goldColor.withValues(alpha: 0.4),
+                width: 0.8,
+              ),
+            ),
+            child: Text(
+              'بِسْمِ ٱللَّهِ ٱلرَّحْمَـٰنِ ٱلرَّحِيمِ',
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: kArabicFont,
+                fontSize: fontSize,
+                height: kMushafahLineHeight,
+                color: const Color(0xFF1B1B1B),
+              ),
             ),
           ),
           // ── Audio ─────────────────────────────────────────────────────────
@@ -115,7 +162,7 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.menu_book_outlined),
             title: const Text('Quran text'),
-            subtitle: const Text('Tanzil Uthmani script — tanzil.net'),
+            subtitle: const Text('Tanzil Uthmanic script — tanzil.net'),
           ),
           ListTile(
             leading: const Icon(Icons.translate_outlined),
@@ -131,7 +178,12 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.font_download_outlined),
             title: const Text('Font'),
-            subtitle: const Text('Amiri Quran — open source (SIL OFL)'),
+            subtitle: const Text(
+              'KFGQPC Uthmanic Script Hafs v8\n'
+              'King Fahad Quran Printing Complex, Madinah\n'
+              'Official Unicode Uthmanic standard font',
+            ),
+            isThreeLine: true,
           ),
           // ── Privacy ───────────────────────────────────────────────────────
           _SectionHeader(title: 'Privacy', colors: colors),

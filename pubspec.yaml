@@ -69,9 +69,15 @@ flutter:
 
   assets:
     - assets/quran/      # Tanzil Quran text
-    - assets/fonts/      # Arabic Quran font
+    - assets/fonts/      # Arabic Quran fonts
 
   fonts:
+    # KFGQPC Uthmanic Script Hafs — official King Fahad Quran Printing Complex font
+    # Version 8 (smart/mobile edition) — Unicode Uthmanic standard
+    - family: UthmanicHafs
+      fonts:
+        - asset: assets/fonts/UthmanicHafs_v08.ttf
+    # Amiri Quran kept as fallback
     - family: AmiriQuran
       fonts:
         - asset: assets/fonts/AmiriQuran.ttf

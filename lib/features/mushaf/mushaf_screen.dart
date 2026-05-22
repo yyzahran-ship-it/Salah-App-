@@ -37,29 +37,69 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(mushafProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const goldColor = Color(0xFFB8860B);
 
     return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFFDF6E3),
       drawer: const SurahIndexDrawer(),
       appBar: AppBar(
+        backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFF1B6B3A),
+        foregroundColor: Colors.white,
+        elevation: 0,
         title: state.currentSurah == null
-            ? const Text('Quran')
+            ? const Text(
+                'القرآن الكريم',
+                style: TextStyle(
+                  fontFamily: 'UthmanicHafs',
+                  fontSize: 20,
+                  color: Colors.white,
+                  letterSpacing: 0.5,
+                ),
+                textDirection: TextDirection.rtl,
+              )
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     state.currentSurah!.nameSimple,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   Text(
                     state.currentSurah!.nameEnglish,
-                    style: const TextStyle(fontSize: 11),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
                   ),
                 ],
               ),
+        // Gold accent bottom border — Mushaf ornamental style
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(2),
+          child: Container(
+            height: 2,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  goldColor,
+                  Color(0xFFD4AF37),
+                  goldColor,
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+        ),
         actions: [
           // Search
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.search, color: Colors.white),
             tooltip: 'Search',
             onPressed: () => Navigator.push(
               context,
@@ -68,7 +108,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           ),
           // Juz jump
           IconButton(
-            icon: const Icon(Icons.format_list_numbered_outlined),
+            icon: const Icon(Icons.format_list_numbered_outlined, color: Colors.white),
             tooltip: 'Jump to Juz',
             onPressed: () => showJuzJumpDialog(context),
           ),
@@ -78,6 +118,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
               state.showTranslation
                   ? Icons.translate
                   : Icons.translate_outlined,
+              color: Colors.white,
             ),
             tooltip: state.showTranslation
                 ? 'Hide translation'
@@ -87,7 +128,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           ),
           // Overflow menu: Hifz, Bookmarks, Settings
           PopupMenuButton<_MenuAction>(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.more_vert, color: Colors.white),
             tooltip: 'More',
             onSelected: (action) {
               switch (action) {
@@ -156,6 +197,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
 
     return ListView.builder(
       controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 16),
       itemCount: state.ayahs.length + 1,
       itemBuilder: (context, index) {
         if (index == 0) return SurahHeader(surah: surah);
@@ -372,30 +414,44 @@ class _BottomSurahNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const goldColor = Color(0xFFB8860B);
 
     return Container(
       height: 52,
       decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        border:
-            Border(top: BorderSide(color: colors.outlineVariant, width: 0.5)),
+        color: isDark ? const Color(0xFF0D1117) : const Color(0xFF1B6B3A),
+        border: Border(
+          top: BorderSide(
+            color: goldColor.withValues(alpha: 0.5),
+            width: 0.8,
+          ),
+        ),
       ),
       child: Row(
         children: [
           Expanded(
             child: TextButton.icon(
               onPressed: surahId > 1 ? onPrevious : null,
-              icon: const Icon(Icons.chevron_left),
-              label: const Text('Previous'),
+              icon: const Icon(Icons.chevron_left, color: Colors.white70),
+              label: const Text(
+                'Previous',
+                style: TextStyle(color: Colors.white70),
+              ),
             ),
           ),
-          Container(width: 0.5, color: colors.outlineVariant),
+          Container(
+            width: 0.8,
+            color: goldColor.withValues(alpha: 0.5),
+          ),
           Expanded(
             child: TextButton.icon(
               onPressed: surahId < 114 ? onNext : null,
-              icon: const Icon(Icons.chevron_right),
-              label: const Text('Next'),
+              icon: const Icon(Icons.chevron_right, color: Colors.white70),
+              label: const Text(
+                'Next',
+                style: TextStyle(color: Colors.white70),
+              ),
               iconAlignment: IconAlignment.end,
             ),
           ),
