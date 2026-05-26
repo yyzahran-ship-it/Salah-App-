@@ -94,7 +94,7 @@ class PrayerTimesState {
       // After Isha — next is tomorrow's Fajr
       final tomorrow = DateTime.now().add(const Duration(days: 1));
       final coords = Coordinates(latitude!, longitude!);
-      final params = CalculationMethod.muslim_world_league().getParameters();
+      final params = CalculationMethod.muslim_world_league.getParameters();
       params.madhab = Madhab.shafi;
       final tomorrowTimes =
           PrayerTimes(coords, DateComponents.from(tomorrow), params);
@@ -148,9 +148,7 @@ class PrayerTimesNotifier extends Notifier<PrayerTimesState> {
       }
 
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.low,
-        ),
+        desiredAccuracy: LocationAccuracy.low,
       ).timeout(const Duration(seconds: 15));
 
       final prefs = await SharedPreferences.getInstance();
@@ -168,7 +166,7 @@ class PrayerTimesNotifier extends Notifier<PrayerTimesState> {
 
   void _compute(double lat, double lon) {
     final coords = Coordinates(lat, lon);
-    final params = CalculationMethod.muslim_world_league().getParameters();
+    final params = CalculationMethod.muslim_world_league.getParameters();
     params.madhab = Madhab.shafi;
     final date = DateComponents.from(DateTime.now());
     final times = PrayerTimes(coords, date, params);

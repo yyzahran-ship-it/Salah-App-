@@ -3,7 +3,7 @@ import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hijri/hijri_calendar.dart';
-import '../../settings/settings_screen.dart';
+import '../settings/settings_screen.dart';
 import 'prayer_times_provider.dart';
 
 class PrayerTimesScreen extends ConsumerStatefulWidget {
@@ -374,7 +374,7 @@ class _PrayerRow extends StatelessWidget {
               color: isCurrent
                   ? goldColor
                   : isPassed
-                      ? Colors.white15
+                      ? Colors.white12
                       : Colors.white24,
             ),
           ),
