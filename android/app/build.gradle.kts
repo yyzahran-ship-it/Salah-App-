@@ -15,7 +15,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.salah.app"
+    namespace = "com.quranapp.quran_app"
     compileSdk = flutter.compileSdkVersion
 
     compileOptions {
