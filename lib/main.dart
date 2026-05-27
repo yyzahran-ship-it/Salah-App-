@@ -58,17 +58,27 @@ class _AppStartupState extends ConsumerState<_AppStartup> {
   }
 
   Future<void> _init() async {
-    final db = ref.read(quranDatabaseProvider);
-    // Seed DB and check onboarding status in parallel.
-    final results = await Future.wait([
-      QuranSeeder(db).seedIfNeeded(),
-      hasSeenOnboarding(),
-    ]);
-    if (mounted) {
-      setState(() {
-        _showOnboarding = !(results[1] as bool);
-        _ready = true;
-      });
+    try {
+      final db = ref.read(quranDatabaseProvider);
+      // Seed DB and check onboarding status in parallel.
+      final results = await Future.wait([
+        QuranSeeder(db).seedIfNeeded(),
+        hasSeenOnboarding(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _showOnboarding = !(results[1] as bool);
+          _ready = true;
+        });
+      }
+    } catch (_) {
+      // If seeding fails, proceed to the app rather than hanging on the splash.
+      if (mounted) {
+        setState(() {
+          _showOnboarding = false;
+          _ready = true;
+        });
+      }
     }
   }
 
@@ -93,38 +103,30 @@ class _SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-
-    return Scaffold(
+    return const Scaffold(
+      backgroundColor: Color(0xFF0A3D2E),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: colors.primaryContainer,
-              ),
-              child: Icon(Icons.menu_book, size: 44, color: colors.primary),
-            ),
-            const SizedBox(height: 20),
+            Icon(Icons.mosque, size: 64, color: Color(0xFFD4AF37)),
+            SizedBox(height: 20),
             Text(
-              'Quran',
+              'Salah',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: colors.onSurface,
+                color: Colors.white,
+                letterSpacing: 1.5,
               ),
             ),
-            const SizedBox(height: 32),
+            SizedBox(height: 32),
             SizedBox(
               width: 28,
               height: 28,
               child: CircularProgressIndicator(
                 strokeWidth: 2.5,
-                color: colors.primary,
+                color: Color(0xFFD4AF37),
               ),
             ),
           ],
