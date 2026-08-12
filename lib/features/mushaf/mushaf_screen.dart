@@ -44,19 +44,32 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
       backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFFDF6E3),
       drawer: const SurahIndexDrawer(),
       appBar: AppBar(
-        backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFF1B6B3A),
-        foregroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0D1117) : Colors.white,
+        foregroundColor: isDark ? Colors.white : Colors.black87,
         elevation: 0,
         title: state.currentSurah == null
-            ? const Text(
-                'القرآن الكريم',
-                style: TextStyle(
-                  fontFamily: 'UthmanicHafs',
-                  fontSize: 20,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
-                ),
-                textDirection: TextDirection.rtl,
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'القرآن الكريم',
+                    style: TextStyle(
+                      fontFamily: 'UthmanicHafs',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textDirection: TextDirection.rtl,
+                  ),
+                  Text(
+                    'The Holy Quran',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? Colors.white54
+                          : Colors.black38,
+                    ),
+                  ),
+                ],
               )
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,30 +79,29 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
                     ),
                   ),
                   Text(
                     state.currentSurah!.nameEnglish,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: isDark ? Colors.white54 : Colors.black38,
                     ),
                   ),
                 ],
               ),
-        // Gold accent bottom border — Mushaf ornamental style
+        // Gold accent bottom border
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(2),
+          preferredSize: const Size.fromHeight(1),
           child: Container(
-            height: 2,
-            decoration: const BoxDecoration(
+            height: 1,
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
                   Colors.transparent,
-                  goldColor,
-                  Color(0xFFD4AF37),
-                  goldColor,
+                  goldColor.withValues(alpha: 0.7),
+                  const Color(0xFFD4AF37),
+                  goldColor.withValues(alpha: 0.7),
                   Colors.transparent,
                 ],
               ),
@@ -99,8 +111,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
         actions: [
           // Search
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            tooltip: 'Search',
+            icon: Icon(Icons.search,
+                color: isDark ? Colors.white : Colors.black54),
+            tooltip: 'بحث  |  Search',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SearchScreen()),
@@ -108,8 +121,9 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
           ),
           // Juz jump
           IconButton(
-            icon: const Icon(Icons.format_list_numbered_outlined, color: Colors.white),
-            tooltip: 'Jump to Juz',
+            icon: Icon(Icons.format_list_numbered_outlined,
+                color: isDark ? Colors.white : Colors.black54),
+            tooltip: 'انتقال للجزء  |  Jump to Juz',
             onPressed: () => showJuzJumpDialog(context),
           ),
           // Translation toggle
@@ -118,18 +132,19 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
               state.showTranslation
                   ? Icons.translate
                   : Icons.translate_outlined,
-              color: Colors.white,
+              color: isDark ? Colors.white : Colors.black54,
             ),
             tooltip: state.showTranslation
-                ? 'Hide translation'
-                : 'Show translation',
+                ? 'إخفاء الترجمة  |  Hide translation'
+                : 'إظهار الترجمة  |  Show translation',
             onPressed: () =>
                 ref.read(mushafProvider.notifier).toggleTranslation(),
           ),
-          // Overflow menu: Hifz, Bookmarks, Settings
+          // Overflow menu
           PopupMenuButton<_MenuAction>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            tooltip: 'More',
+            icon: Icon(Icons.more_vert,
+                color: isDark ? Colors.white : Colors.black54),
+            tooltip: 'المزيد  |  More',
             onSelected: (action) {
               switch (action) {
                 case _MenuAction.hifz:
@@ -137,7 +152,8 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                       MaterialPageRoute(builder: (_) => const HifzDashboard()));
                 case _MenuAction.bookmarks:
                   Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const BookmarksScreen()));
+                      MaterialPageRoute(
+                          builder: (_) => const BookmarksScreen()));
                 case _MenuAction.settings:
                   Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const SettingsScreen()));
@@ -148,7 +164,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                 value: _MenuAction.hifz,
                 child: ListTile(
                   leading: Icon(Icons.psychology_outlined),
-                  title: Text('Hifz'),
+                  title: Text('الحفظ  |  Hifz'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -156,7 +172,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                 value: _MenuAction.bookmarks,
                 child: ListTile(
                   leading: Icon(Icons.bookmarks_outlined),
-                  title: Text('Bookmarks'),
+                  title: Text('العلامات  |  Bookmarks'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -164,7 +180,7 @@ class _MushafScreenState extends ConsumerState<MushafScreen> {
                 value: _MenuAction.settings,
                 child: ListTile(
                   leading: Icon(Icons.settings_outlined),
-                  title: Text('Settings'),
+                  title: Text('الإعدادات  |  Settings'),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
@@ -435,7 +451,7 @@ class _BottomSurahNav extends StatelessWidget {
               onPressed: surahId > 1 ? onPrevious : null,
               icon: const Icon(Icons.chevron_left, color: Colors.white70),
               label: const Text(
-                'Previous',
+                'السابق  |  Prev',
                 style: TextStyle(color: Colors.white70),
               ),
             ),
@@ -449,7 +465,7 @@ class _BottomSurahNav extends StatelessWidget {
               onPressed: surahId < 114 ? onNext : null,
               icon: const Icon(Icons.chevron_right, color: Colors.white70),
               label: const Text(
-                'Next',
+                'التالي  |  Next',
                 style: TextStyle(color: Colors.white70),
               ),
               iconAlignment: IconAlignment.end,

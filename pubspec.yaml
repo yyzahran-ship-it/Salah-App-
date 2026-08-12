@@ -55,6 +55,9 @@ dependencies:
   # Hijri (Islamic) calendar
   hijri: ^3.0.1
 
+  # Live compass / magnetometer for Qibla
+  flutter_compass: ^0.8.0
+
   # Utilities
   path_provider: ^2.1.5
   shared_preferences: ^2.3.5

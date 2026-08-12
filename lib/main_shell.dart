@@ -66,28 +66,28 @@ class _SalatukNavBar extends StatelessWidget {
         NavigationDestination(
           icon: Icon(Icons.watch_later_outlined, color: Colors.white38),
           selectedIcon: Icon(Icons.watch_later, color: Color(0xFF4FC3F7)),
-          label: 'Clock',
+          label: 'الساعة',
         ),
         NavigationDestination(
           icon: Icon(Icons.format_list_bulleted_outlined, color: Colors.white38),
           selectedIcon:
               Icon(Icons.format_list_bulleted, color: Color(0xFF4FC3F7)),
-          label: 'Prayers',
+          label: 'الصلاة',
         ),
         NavigationDestination(
           icon: Icon(Icons.menu_book_outlined, color: Colors.white38),
           selectedIcon: Icon(Icons.menu_book, color: Color(0xFF4FC3F7)),
-          label: 'Quran',
+          label: 'القرآن',
         ),
         NavigationDestination(
           icon: Icon(Icons.explore_outlined, color: Colors.white38),
           selectedIcon: Icon(Icons.explore, color: Color(0xFF4FC3F7)),
-          label: 'Qibla',
+          label: 'القبلة',
         ),
         NavigationDestination(
           icon: Icon(Icons.spa_outlined, color: Colors.white38),
           selectedIcon: Icon(Icons.spa, color: Color(0xFF4FC3F7)),
-          label: 'Dhikr',
+          label: 'الأذكار',
         ),
       ],
     );

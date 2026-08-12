@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:adhan/adhan.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_compass/flutter_compass.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../prayer_times/prayer_times_provider.dart';
 
@@ -11,15 +12,16 @@ class QiblaScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(prayerTimesProvider);
 
-    double? bearing;
-    String cityLabel = 'مكة';
+    double? qiblaBearing;
+    String cityLabel = 'مكة  |  Mecca';
     if (state.latitude != null && state.longitude != null) {
-      bearing = Qibla(Coordinates(state.latitude!, state.longitude!)).direction;
+      qiblaBearing =
+          Qibla(Coordinates(state.latitude!, state.longitude!)).direction;
       const meccaLat = 21.3891;
       const meccaLon = 39.8579;
       if ((state.latitude! - meccaLat).abs() > 0.5 ||
           (state.longitude! - meccaLon).abs() > 0.5) {
-        cityLabel = 'موقعك';
+        cityLabel = 'موقعك  |  Your location';
       }
     }
 
@@ -33,187 +35,357 @@ class QiblaScreen extends ConsumerWidget {
                 ? _NoLocation(
                     onRetry: () =>
                         ref.read(prayerTimesProvider.notifier).refresh())
-                : _QiblaView(
-                    bearing: bearing!, cityLabel: cityLabel),
+                : _LiveQiblaView(
+                    qiblaBearing: qiblaBearing!, cityLabel: cityLabel),
       ),
     );
   }
 }
 
-// ─── Main content ─────────────────────────────────────────────────────────────
+// ─── Live compass view ────────────────────────────────────────────────────────
 
-class _QiblaView extends StatelessWidget {
-  const _QiblaView({required this.bearing, required this.cityLabel});
+class _LiveQiblaView extends StatelessWidget {
+  const _LiveQiblaView({
+    required this.qiblaBearing,
+    required this.cityLabel,
+  });
 
-  final double bearing;
+  final double qiblaBearing;
   final String cityLabel;
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 28),
+    return StreamBuilder<CompassEvent>(
+      stream: FlutterCompass.events,
+      builder: (context, snapshot) {
+        final heading = snapshot.data?.heading ?? 0.0;
+        final accuracy = snapshot.data?.accuracy;
 
-            // Kaaba icon
-            const Icon(Icons.mosque, size: 64, color: Color(0xFF9E9E9E)),
+        // Arrow angle so it points at Qibla relative to current heading
+        final arrowAngle = (qiblaBearing - heading) * math.pi / 180;
 
-            const SizedBox(height: 32),
+        // Aligned = arrow within ±5° of pointing straight up
+        final angleDiff = ((qiblaBearing - heading) % 360 + 360) % 360;
+        final isAligned = angleDiff < 5 || angleDiff > 355;
 
-            // Compass + arrow
-            SizedBox(
-              width: 260,
-              height: 260,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CustomPaint(
-                    size: const Size(260, 260),
-                    painter: _CompassPainter(),
-                  ),
-                  Transform.rotate(
-                    angle: bearing * math.pi / 180,
-                    child: const _Pointer(),
-                  ),
-                ],
-              ),
-            ),
+        // Sensor quality label
+        final String qualityLabel;
+        final Color qualityColor;
+        if (accuracy == null) {
+          qualityLabel = 'مستشعر متاح  |  Sensor available';
+          qualityColor = Colors.orange;
+        } else if (accuracy < 15) {
+          qualityLabel = 'دقة مستشعر الهاتف جيدة  |  Sensor accuracy good';
+          qualityColor = Colors.green;
+        } else if (accuracy < 30) {
+          qualityLabel = 'دقة متوسطة  |  Medium accuracy';
+          qualityColor = Colors.orange;
+        } else {
+          qualityLabel = 'دقة منخفضة — يُنصح بالمعايرة  |  Low — calibrate';
+          qualityColor = Colors.red;
+        }
 
-            const SizedBox(height: 28),
-
-            // Degree
-            Text(
-              bearing.toStringAsFixed(0),
-              style: const TextStyle(
-                fontSize: 60,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF4FC3F7),
-                height: 1,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Text(
-              'الاتجاه التقريبي للقبلة في',
-              style: TextStyle(fontSize: 14, color: Colors.black45),
-              textDirection: TextDirection.rtl,
-            ),
-            const SizedBox(height: 2),
-            Builder(builder: (context) {
-              return Text(
-                '$cityLabel ${bearing.toStringAsFixed(0)}°',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black54,
-                  fontWeight: FontWeight.w500,
-                ),
-                textDirection: TextDirection.rtl,
-              );
-            }),
-
-            const SizedBox(height: 24),
-
-            // Sensor row
-            Row(
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
               children: [
-                TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'حرّك الهاتف على شكل رقم 8 لمعايرة البوصلة',
-                          textDirection: TextDirection.rtl,
-                        ),
-                        duration: Duration(seconds: 3),
+                const SizedBox(height: 24),
+
+                // ── Kaaba icon ────────────────────────────────────────
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFF5F5F5),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                    );
-                  },
-                  child: const Text(
-                    'معايرة',
-                    style: TextStyle(color: Color(0xFF4FC3F7), fontSize: 14),
+                    ],
                   ),
+                  child: const Icon(Icons.mosque,
+                      size: 38, color: Color(0xFF757575)),
                 ),
-                const Spacer(),
+
+                const SizedBox(height: 8),
+
                 const Text(
-                  'دقة مستشعر الهاتف جيدة',
-                  style: TextStyle(color: Colors.black45, fontSize: 13),
+                  'القبلة',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
                   textDirection: TextDirection.rtl,
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.green,
+                const Text(
+                  'Qibla Direction',
+                  style: TextStyle(fontSize: 12, color: Colors.black45),
+                ),
+
+                const SizedBox(height: 28),
+
+                // ── Compass ───────────────────────────────────────────
+                SizedBox(
+                  width: 280,
+                  height: 280,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Outer glow ring
+                      Container(
+                        width: 280,
+                        height: 280,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              const Color(0xFF4FC3F7).withValues(alpha: 0.08),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.65, 1.0],
+                          ),
+                        ),
+                      ),
+                      // Card shadow behind compass
+                      Container(
+                        width: 250,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 20,
+                              spreadRadius: 2,
+                            ),
+                            if (isAligned)
+                              BoxShadow(
+                                color: const Color(0xFF4FC3F7)
+                                    .withValues(alpha: 0.3),
+                                blurRadius: 30,
+                                spreadRadius: 4,
+                              ),
+                          ],
+                        ),
+                      ),
+                      // Static compass ring (N/NE/E… labels never move)
+                      CustomPaint(
+                        size: const Size(280, 280),
+                        painter: _CompassRingPainter(isAligned: isAligned),
+                      ),
+                      // Animated Qibla arrow
+                      AnimatedRotation(
+                        turns: arrowAngle / (2 * math.pi),
+                        duration: const Duration(milliseconds: 120),
+                        curve: Curves.easeOut,
+                        child: _QiblaArrow(isAligned: isAligned),
+                      ),
+                      // Center dot
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isAligned
+                              ? const Color(0xFF4FC3F7)
+                              : Colors.black54,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                // ── Degree ────────────────────────────────────────────
+                Text(
+                  '${qiblaBearing.toStringAsFixed(0)}°',
+                  style: TextStyle(
+                    fontSize: 56,
+                    fontWeight: FontWeight.bold,
+                    color: isAligned
+                        ? const Color(0xFF4FC3F7)
+                        : const Color(0xFF4FC3F7),
+                    height: 1,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                Text(
+                  'الاتجاه التقريبي للقبلة من $cityLabel',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black45,
+                    height: 1.5,
+                  ),
+                  textDirection: TextDirection.rtl,
+                  textAlign: TextAlign.center,
+                ),
+
+                if (isAligned) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF4FC3F7).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color:
+                              const Color(0xFF4FC3F7).withValues(alpha: 0.4)),
+                    ),
+                    child: const Text(
+                      '✓  أنت تواجه القبلة  |  Facing Qibla',
+                      style: TextStyle(
+                        color: Color(0xFF4FC3F7),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+
+                // ── Sensor quality + calibrate ────────────────────────
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F8F8),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: qualityColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          qualityLabel,
+                          style: const TextStyle(
+                              color: Colors.black54, fontSize: 12),
+                          textDirection: TextDirection.rtl,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'حرّك الهاتف على شكل رقم 8 لمعايرة البوصلة\nMove phone in a figure-8 to calibrate compass',
+                                textDirection: TextDirection.rtl,
+                              ),
+                              duration: Duration(seconds: 4),
+                            ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'معايرة\nCalibrate',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Color(0xFF4FC3F7), fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
               ],
             ),
-
-            const SizedBox(height: 24),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
 
-// ─── Compass painter ──────────────────────────────────────────────────────────
+// ─── Compass ring painter ─────────────────────────────────────────────────────
 
-class _CompassPainter extends CustomPainter {
+class _CompassRingPainter extends CustomPainter {
+  const _CompassRingPainter({required this.isAligned});
+
+  final bool isAligned;
+
   @override
   void paint(Canvas canvas, Size size) {
     final c = Offset(size.width / 2, size.height / 2);
-    final r = size.width / 2 - 2;
+    final r = size.width / 2 - 4;
 
     // Outer ring
     canvas.drawCircle(
       c,
       r,
       Paint()
-        ..color = const Color(0xFFE0E0E0)
+        ..color = isAligned
+            ? const Color(0xFF4FC3F7).withValues(alpha: 0.4)
+            : const Color(0xFFE0E0E0)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5,
     );
 
-    // Tick marks (72 = every 5°)
+    // Inner ring
+    canvas.drawCircle(
+      c,
+      r * 0.72,
+      Paint()
+        ..color = const Color(0xFFF0F0F0)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8,
+    );
+
+    // Tick marks
     for (int i = 0; i < 72; i++) {
       final angle = i * (math.pi * 2 / 72) - math.pi / 2;
-      final isCardinal = i % 18 == 0;
-      final isMajor = i % 9 == 0;
-      final len = isCardinal ? 14.0 : isMajor ? 8.0 : 5.0;
+      final isCard = i % 18 == 0;
+      final isMaj = i % 9 == 0;
+      final len = isCard ? 16.0 : isMaj ? 9.0 : 5.0;
       canvas.drawLine(
         c + Offset(math.cos(angle) * (r - len), math.sin(angle) * (r - len)),
         c + Offset(math.cos(angle) * r, math.sin(angle) * r),
         Paint()
-          ..color = isCardinal
-              ? Colors.black38
-              : Colors.black12
-          ..strokeWidth = isCardinal ? 1.5 : 1.0,
+          ..color = isCard ? Colors.black38 : Colors.black12
+          ..strokeWidth = isCard ? 1.5 : 0.8,
       );
     }
 
-    // 8-point labels
-    const points = [
+    // Cardinal + intercardinal labels
+    const pts = [
       ('N', 0.0), ('NE', 45.0), ('E', 90.0), ('SE', 135.0),
       ('S', 180.0), ('SW', 225.0), ('W', 270.0), ('NW', 315.0),
     ];
     final tp = TextPainter(textDirection: TextDirection.ltr);
-    for (final (label, deg) in points) {
+    for (final (lbl, deg) in pts) {
       final rad = (deg - 90) * math.pi / 180;
-      final isMain = label.length == 1;
-      final lRadius = r - (isMain ? 28.0 : 22.0);
-      final pos = c + Offset(math.cos(rad) * lRadius, math.sin(rad) * lRadius);
+      final isMain = lbl.length == 1;
+      final lR = r - (isMain ? 30.0 : 24.0);
+      final pos = c + Offset(math.cos(rad) * lR, math.sin(rad) * lR);
       tp.text = TextSpan(
-        text: label,
+        text: lbl,
         style: TextStyle(
-          color:
-              isMain ? const Color(0xFF4FC3F7) : Colors.black38,
-          fontSize: isMain ? 14.0 : 11.0,
+          color: isMain ? const Color(0xFF4FC3F7) : Colors.black38,
+          fontSize: isMain ? 15.0 : 10.0,
           fontWeight: isMain ? FontWeight.bold : FontWeight.normal,
         ),
       );
@@ -223,38 +395,68 @@ class _CompassPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CompassPainter old) => false;
+  bool shouldRepaint(_CompassRingPainter old) => old.isAligned != isAligned;
 }
 
-// ─── Direction pointer ────────────────────────────────────────────────────────
+// ─── Qibla arrow ─────────────────────────────────────────────────────────────
 
-class _Pointer extends StatelessWidget {
-  const _Pointer();
+class _QiblaArrow extends StatelessWidget {
+  const _QiblaArrow({required this.isAligned});
+
+  final bool isAligned;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      size: const Size(18, 100),
-      painter: _PointerPainter(),
+      size: const Size(24, 180),
+      painter: _ArrowPainter(isAligned: isAligned),
     );
   }
 }
 
-class _PointerPainter extends CustomPainter {
+class _ArrowPainter extends CustomPainter {
+  const _ArrowPainter({required this.isAligned});
+
+  final bool isAligned;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.black87;
-    // Triangle pointing up
-    final path = Path()
-      ..moveTo(size.width / 2, 0)
-      ..lineTo(0, size.height * 0.38)
-      ..lineTo(size.width, size.height * 0.38)
+    final color =
+        isAligned ? const Color(0xFF4FC3F7) : const Color(0xFF1A1A1A);
+    final tailColor =
+        isAligned ? const Color(0xFF4FC3F7).withValues(alpha: 0.4) : Colors.black26;
+
+    final cx = size.width / 2;
+    final midY = size.height / 2;
+
+    // North arrow head (pointing up)
+    final headPath = Path()
+      ..moveTo(cx, 4)
+      ..lineTo(cx - 10, midY - 4)
+      ..lineTo(cx + 10, midY - 4)
       ..close();
-    canvas.drawPath(path, paint);
+    canvas.drawPath(headPath, Paint()..color = color);
+
+    // South tail (pointing down, lighter)
+    final tailPath = Path()
+      ..moveTo(cx, size.height - 4)
+      ..lineTo(cx - 8, midY + 4)
+      ..lineTo(cx + 8, midY + 4)
+      ..close();
+    canvas.drawPath(tailPath, Paint()..color = tailColor);
+
+    // Shaft
+    canvas.drawLine(
+      Offset(cx, midY - 4),
+      Offset(cx, midY + 4),
+      Paint()
+        ..color = color
+        ..strokeWidth = 2,
+    );
   }
 
   @override
-  bool shouldRepaint(_PointerPainter old) => false;
+  bool shouldRepaint(_ArrowPainter old) => old.isAligned != isAligned;
 }
 
 // ─── No location ──────────────────────────────────────────────────────────────
@@ -280,14 +482,22 @@ class _NoLocation extends StatelessWidget {
               textAlign: TextAlign.center,
               textDirection: TextDirection.rtl,
             ),
+            const SizedBox(height: 4),
+            const Text(
+              'Location required for Qibla direction',
+              style: TextStyle(color: Colors.black38, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: onRetry,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4FC3F7),
                 foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('تفعيل الموقع'),
+              child: const Text('تفعيل الموقع  |  Enable Location'),
             ),
           ],
         ),

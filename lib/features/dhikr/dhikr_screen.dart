@@ -10,58 +10,59 @@ class DhikrScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor:
-          isDark ? const Color(0xFF0D1117) : const Color(0xFF0A3D2E),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          'Dhikr & Athkar',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.0,
-          ),
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-        children: [
-          // Arabic title
-          const Text(
-            'الأذكار',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 20,
-              fontFamily: 'UthmanicHafs',
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            // ── Header ────────────────────────────────────────────────
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  children: [
+                    Text(
+                      'الأذكار',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      textDirection: TextDirection.rtl,
+                    ),
+                    Text(
+                      'Dhikr & Athkar',
+                      style: TextStyle(fontSize: 13, color: Colors.black45),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            textDirection: TextDirection.rtl,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
 
-          // Collections grid
-          GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.1,
-            children: dhikrCollections
-                .map((col) => _CollectionCard(collection: col))
-                .toList(),
-          ),
+            const SizedBox(height: 20),
 
-          const SizedBox(height: 20),
+            // ── Collections grid (fixed height per card to avoid overflow) ─
+            GridView(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisExtent: 168,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+              ),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              children: dhikrCollections
+                  .map((col) => _CollectionCard(collection: col))
+                  .toList(),
+            ),
 
-          // Tasbih counter
-          _TasbihCard(),
-        ],
+            const SizedBox(height: 16),
+
+            // ── Tasbih counter ─────────────────────────────────────────
+            _TasbihCard(),
+          ],
+        ),
       ),
     );
   }
@@ -77,10 +78,11 @@ class _CollectionCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(dhikrProgressProvider);
-    final completed =
-        ref.read(dhikrProgressProvider.notifier).completedInCategory(collection.category);
+    final completed = ref
+        .read(dhikrProgressProvider.notifier)
+        .completedInCategory(collection.category);
     final total = collection.items.length;
-    final isDone = completed == total;
+    final isDone = completed == total && total > 0;
 
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -91,24 +93,22 @@ class _CollectionCard extends ConsumerWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: isDone
-                ? [const Color(0xFF1B6B3A), const Color(0xFF0A7B83)]
-                : [
-                    Colors.white.withValues(alpha: 0.08),
-                    Colors.white.withValues(alpha: 0.04),
-                  ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isDone
-                ? const Color(0xFFD4AF37).withValues(alpha: 0.5)
-                : Colors.white.withValues(alpha: 0.12),
+                ? const Color(0xFF4FC3F7).withValues(alpha: 0.6)
+                : const Color(0xFFEEEEEE),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -118,45 +118,51 @@ class _CollectionCard extends ConsumerWidget {
                 const Spacer(),
                 if (isDone)
                   const Icon(Icons.check_circle,
-                      color: Color(0xFFD4AF37), size: 18),
+                      color: Color(0xFF4FC3F7), size: 18),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: 10),
             Text(
               collection.titleAr,
               style: const TextStyle(
-                color: Colors.white,
+                color: Colors.black87,
                 fontSize: 15,
-                fontFamily: 'UthmanicHafs',
+                fontWeight: FontWeight.w600,
               ),
               textDirection: TextDirection.rtl,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(
               collection.titleEn,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.65),
+              style: const TextStyle(
+                color: Colors.black45,
                 fontSize: 11,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
             // Progress bar
             ClipRRect(
               borderRadius: BorderRadius.circular(2),
               child: LinearProgressIndicator(
                 value: total > 0 ? completed / total : 0,
-                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                backgroundColor: const Color(0xFFEEEEEE),
                 valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFFD4AF37),
+                  Color(0xFF4FC3F7),
                 ),
                 minHeight: 3,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 5),
             Text(
-              '$completed / $total done',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
+              total == 0
+                  ? 'أذكار / Dhikr'
+                  : '$completed / $total',
+              style: const TextStyle(
+                color: Colors.black38,
                 fontSize: 10,
               ),
             ),
@@ -193,19 +199,19 @@ class _CategoryIcon extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isDone
-            ? const Color(0xFFD4AF37).withValues(alpha: 0.2)
-            : Colors.white.withValues(alpha: 0.1),
+            ? const Color(0xFF4FC3F7).withValues(alpha: 0.12)
+            : const Color(0xFFF5F5F5),
       ),
       child: Icon(
         data,
-        color: isDone ? const Color(0xFFD4AF37) : Colors.white60,
+        color: isDone ? const Color(0xFF4FC3F7) : Colors.black45,
         size: 18,
       ),
     );
   }
 }
 
-// ─── Tasbih card (links to TasbihScreen) ─────────────────────────────────────
+// ─── Tasbih card ──────────────────────────────────────────────────────────────
 
 class _TasbihCard extends ConsumerWidget {
   @override
@@ -220,15 +226,15 @@ class _TasbihCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0A7B83), Color(0xFF0A3D2E)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: const Color(0xFF4FC3F7),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0xFFD4AF37).withValues(alpha: 0.3),
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF4FC3F7).withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -237,10 +243,10 @@ class _TasbihCard extends ConsumerWidget {
               height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.1),
+                color: Colors.white.withValues(alpha: 0.2),
               ),
               child: const Icon(Icons.touch_app_outlined,
-                  color: Color(0xFFD4AF37), size: 26),
+                  color: Colors.white, size: 26),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -248,36 +254,36 @@ class _TasbihCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Tasbih Counter',
+                    'المسبحة الرقمية',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
+                    textDirection: TextDirection.rtl,
                   ),
                   Text(
-                    'المسبحة الرقمية',
+                    'Tasbih Counter',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6),
-                      fontFamily: 'UthmanicHafs',
-                      fontSize: 13,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
                     ),
-                    textDirection: TextDirection.rtl,
                   ),
                 ],
               ),
             ),
             Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   '$count',
                   style: const TextStyle(
-                    color: Color(0xFFD4AF37),
-                    fontSize: 22,
+                    color: Colors.white,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Colors.white38),
+                const Icon(Icons.chevron_right, color: Colors.white70),
               ],
             ),
           ],
