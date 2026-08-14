@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hijri/hijri_calendar.dart';
 import '../settings/settings_screen.dart';
+import 'prayer_log_provider.dart';
 import 'prayer_times_provider.dart';
 
 class PrayerTimesScreen extends ConsumerStatefulWidget {
@@ -60,6 +61,11 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
     final isToday = _isSameDay(_selectedDate, DateTime.now());
     final times = _timesForDate(state);
     final nextPrayer = isToday ? state.nextPrayer : Prayer.none;
+
+    // Prayer log for the selected day (for checkmarks).
+    final selectedDateDay = localDateDay(_selectedDate);
+    final dayLog =
+        ref.watch(prayerLogProvider(selectedDateDay)).valueOrNull ?? {};
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -137,7 +143,7 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
 
             // ── Hijri + Gregorian dates ───────────────────────────────
             Padding(
-              padding: const EdgeInsets.only(right: 16, bottom: 10),
+              padding: const EdgeInsets.only(right: 16, bottom: 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -157,6 +163,9 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
                 ],
               ),
             ),
+
+            // ── Weekly prayer tracker ─────────────────────────────────
+            const _WeeklyTracker(),
 
             const Divider(height: 1, thickness: 1, color: Color(0xFFEEEEEE)),
 
@@ -189,12 +198,20 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
                     final isPassed = isToday &&
                         time.toLocal().isBefore(DateTime.now()) &&
                         !isNext;
+                    final key = _prayerKey(prayer);
                     return _PrayerRow(
                       prayer: prayer,
                       time: time,
                       isNext: isNext,
                       isPassed: isPassed,
                       countdown: isNext ? state.timeUntilNext : null,
+                      prayerKey: key,
+                      isPerformed: key != null && (dayLog[key] ?? false),
+                      onToggle: key == null
+                          ? null
+                          : () => ref
+                              .read(prayerLogNotifierProvider.notifier)
+                              .toggle(key, selectedDateDay),
                     );
                   },
                 ),
@@ -206,7 +223,172 @@ class _PrayerTimesScreenState extends ConsumerState<PrayerTimesScreen> {
   }
 }
 
+// Maps an adhan Prayer enum to its SharedPreferences key; null = not tracked.
+String? _prayerKey(Prayer prayer) {
+  switch (prayer) {
+    case Prayer.fajr:
+      return 'fajr';
+    case Prayer.dhuhr:
+      return 'dhuhr';
+    case Prayer.asr:
+      return 'asr';
+    case Prayer.maghrib:
+      return 'maghrib';
+    case Prayer.isha:
+      return 'isha';
+    default:
+      return null; // sunrise — informational only
+  }
+}
+
+// ─── Weekly tracker ───────────────────────────────────────────────────────────
+
+class _WeeklyTracker extends ConsumerWidget {
+  const _WeeklyTracker();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final today = DateTime.now();
+    final todayDay = localDateDay(today);
+    final startDay = todayDay - 6;
+
+    final weekData =
+        ref.watch(prayerWeekLogProvider(startDay)).valueOrNull ?? [];
+    final streak = ref.watch(prayerStreakProvider).valueOrNull ?? 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+      child: Row(
+        children: [
+          // ── Streak badge ────────────────────────────────────────
+          Container(
+            width: 52,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: streak > 0
+                  ? const Color(0xFF1B6B3A).withValues(alpha: 0.08)
+                  : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: streak > 0
+                    ? const Color(0xFF1B6B3A).withValues(alpha: 0.25)
+                    : Colors.transparent,
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '$streak',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    height: 1,
+                    color: streak > 0
+                        ? const Color(0xFF1B6B3A)
+                        : Colors.black26,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  streak == 1 ? 'يوم' : 'أيام',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: streak > 0
+                        ? const Color(0xFF1B6B3A)
+                        : Colors.black26,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // ── 7-day dot grid ──────────────────────────────────────
+          Expanded(
+            child: weekData.isEmpty
+                ? const SizedBox(height: 60)
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      for (var i = 0; i < 7; i++)
+                        _DayColumn(
+                          day: today.subtract(Duration(days: 6 - i)),
+                          status: i < weekData.length ? weekData[i] : {},
+                          isToday: i == 6,
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DayColumn extends StatelessWidget {
+  const _DayColumn({
+    required this.day,
+    required this.status,
+    required this.isToday,
+  });
+
+  final DateTime day;
+  final Map<String, bool> status;
+  final bool isToday;
+
+  static const _prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+
+  @override
+  Widget build(BuildContext context) {
+    const green = Color(0xFF1B6B3A);
+    final label = _shortDayAr(day.weekday);
+
+    return Container(
+      width: 30,
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      decoration: isToday
+          ? BoxDecoration(
+              color: green.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            )
+          : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+              color: isToday ? green : Colors.black38,
+            ),
+          ),
+          const SizedBox(height: 5),
+          for (final p in _prayers)
+            Container(
+              width: 6,
+              height: 6,
+              margin: const EdgeInsets.only(bottom: 2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: status[p] == true ? green : const Color(0xFFE0E0E0),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+String _shortDayAr(int weekday) {
+  // Single Arabic letter abbreviations: Mon=ن, Tue=ث, Wed=ع, Thu=خ, Fri=ج, Sat=س, Sun=ح
+  const shorts = ['', 'ن', 'ث', 'ع', 'خ', 'ج', 'س', 'ح'];
+  return shorts[weekday];
+}
 
 String _dayNameAr(int weekday) {
   const days = [
@@ -278,14 +460,20 @@ class _PrayerRow extends StatefulWidget {
     required this.time,
     required this.isNext,
     required this.isPassed,
+    required this.isPerformed,
     this.countdown,
+    this.prayerKey,
+    this.onToggle,
   });
 
   final Prayer prayer;
   final DateTime time;
   final bool isNext;
   final bool isPassed;
+  final bool isPerformed;
   final Duration? countdown;
+  final String? prayerKey; // null = not an obligatory prayer (Sunrise)
+  final VoidCallback? onToggle;
 
   @override
   State<_PrayerRow> createState() => _PrayerRowState();
@@ -320,6 +508,7 @@ class _PrayerRowState extends State<_PrayerRow> {
   Widget build(BuildContext context) {
     final isNext = widget.isNext;
     final isPassed = widget.isPassed;
+    const green = Color(0xFF1B6B3A);
 
     final timeColor = isNext
         ? Colors.black87
@@ -328,11 +517,42 @@ class _PrayerRowState extends State<_PrayerRow> {
             : Colors.black54;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 13),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         textDirection: TextDirection.rtl,
         children: [
-          // Time (visual right in RTL)
+          // ── Checkmark circle (visual right in RTL) ───────────────
+          if (widget.prayerKey != null)
+            GestureDetector(
+              onTap: widget.onToggle,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: widget.isPerformed ? green : Colors.transparent,
+                  border: Border.all(
+                    color: widget.isPerformed
+                        ? green
+                        : isPassed
+                            ? Colors.black12
+                            : Colors.black26,
+                    width: 1.5,
+                  ),
+                ),
+                child: widget.isPerformed
+                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                    : null,
+              ),
+            )
+          else
+            const SizedBox(width: 28), // sunrise — alignment placeholder
+
+          const SizedBox(width: 10),
+
+          // ── Time ─────────────────────────────────────────────────
           Text(
             _formatTimeAr(widget.time),
             style: TextStyle(
@@ -342,7 +562,8 @@ class _PrayerRowState extends State<_PrayerRow> {
             ),
           ),
           const SizedBox(width: 10),
-          // Prayer name
+
+          // ── Prayer name ──────────────────────────────────────────
           Text(
             prayerNameAr(widget.prayer),
             style: TextStyle(
@@ -352,7 +573,8 @@ class _PrayerRowState extends State<_PrayerRow> {
             ),
           ),
           const SizedBox(width: 8),
-          // Countdown for the next prayer, or spacer
+
+          // ── Countdown or spacer ──────────────────────────────────
           if (isNext && widget.countdown != null)
             Expanded(
               child: Text(
@@ -367,7 +589,8 @@ class _PrayerRowState extends State<_PrayerRow> {
             )
           else
             const Spacer(),
-          // Alert icon (visual left in RTL)
+
+          // ── Alert icon (visual left in RTL) ──────────────────────
           GestureDetector(
             onTap: () => setState(() => _alertMode = (_alertMode + 1) % 3),
             child: Icon(_icon, color: _iconColor, size: 22),
