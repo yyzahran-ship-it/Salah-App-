@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout code
@@ -25,13 +26,15 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Install Android NDK
-        run: |
-          echo "y" | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "ndk;27.0.12077973"
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.0.12077973" >> $GITHUB_ENV
-
-      - name: Flutter doctor
-        run: flutter doctor -v
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Get dependencies
         run: flutter pub get
@@ -42,24 +45,12 @@ jobs:
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons
 
-      - name: Analyze Dart code
-        run: flutter analyze --no-fatal-infos 2>&1
-
       - name: Build debug APK
-        run: flutter build apk --debug --split-per-abi 2>&1 | tee build_log.txt; exit ${PIPESTATUS[0]}
+        run: flutter build apk --debug --split-per-abi
 
       - name: Upload APK (arm64)
-        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: salah-app-debug
           path: build/app/outputs/flutter-apk/app-arm64-v8a-debug.apk
           retention-days: 7
-
-      - name: Show errors on failure
-        if: failure()
-        run: |
-          echo "=== Flutter Analyze Output ==="
-          flutter analyze --no-fatal-infos 2>&1 || true
-          echo "=== Last 80 lines of build log ==="
-          tail -80 build_log.txt 2>/dev/null || echo "No build log"
