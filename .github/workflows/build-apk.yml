@@ -59,8 +59,12 @@ jobs:
         run: flutter pub get
 
       - name: Generate code (build_runner)
-        if: steps.cache-generated.outputs.cache-hit != 'true'
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: |
+          if [ -f lib/data/sources/local/quran_database.g.dart ]; then
+            echo "Generated file already present, skipping build_runner"
+          else
+            dart run build_runner build --delete-conflicting-outputs
+          fi
 
       - name: Generate launcher icons
         run: dart run flutter_launcher_icons

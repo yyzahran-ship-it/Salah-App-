@@ -17,10 +17,11 @@ build/
 # Mac
 .DS_Store
 
-# Generated files
+# Generated files (*.g.dart ignored except quran_database.g.dart which is committed)
 *.g.dart
 *.freezed.dart
 *.mocks.dart
+!lib/data/sources/local/quran_database.g.dart
 
 # Secrets
 .env
