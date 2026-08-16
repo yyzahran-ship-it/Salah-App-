@@ -8,7 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
 
     steps:
       - name: Checkout code
@@ -44,18 +44,22 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Cache build_runner output
+      - name: Cache generated dart files
+        id: cache-generated
         uses: actions/cache@v4
         with:
-          path: .dart_tool/build
-          key: ${{ runner.os }}-build-runner-${{ hashFiles('pubspec.lock') }}
+          path: |
+            .dart_tool/build
+            lib/data/sources/local/quran_database.g.dart
+          key: ${{ runner.os }}-generated-${{ hashFiles('pubspec.lock', 'lib/data/sources/local/quran_database.dart') }}
           restore-keys: |
-            ${{ runner.os }}-build-runner-
+            ${{ runner.os }}-generated-
 
       - name: Get dependencies
         run: flutter pub get
 
       - name: Generate code (build_runner)
+        if: steps.cache-generated.outputs.cache-hit != 'true'
         run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Generate launcher icons
