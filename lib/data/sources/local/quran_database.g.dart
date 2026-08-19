@@ -1466,7 +1466,7 @@ class BookmarksCompanion extends UpdateCompanion<BookmarkRow> {
       map['ayah_number'] = Variable<int>(ayahNumber.value);
     }
     if (tag.present) {
-      map['tag'] = Variable<String?>(tag.value);
+      map['tag'] = Variable<String>(tag.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
@@ -2050,13 +2050,13 @@ class $HifzCardsTable extends HifzCards
   @override
   late final GeneratedColumn<double> stability = GeneratedColumn<double>(
       'stability', aliasedName, false,
-      type: DriftSqlType.real, requiredDuringInsert: true);
+      type: DriftSqlType.double, requiredDuringInsert: true);
   static const VerificationMeta _difficultyMeta =
       const VerificationMeta('difficulty');
   @override
   late final GeneratedColumn<double> difficulty = GeneratedColumn<double>(
       'difficulty', aliasedName, false,
-      type: DriftSqlType.real, requiredDuringInsert: true);
+      type: DriftSqlType.double, requiredDuringInsert: true);
   static const VerificationMeta _scheduledDaysMeta =
       const VerificationMeta('scheduledDays');
   @override
@@ -2192,9 +2192,9 @@ class $HifzCardsTable extends HifzCards
       ayahNumber: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}ayah_number'])!,
       stability: attachedDatabase.typeMapping
-          .read(DriftSqlType.real, data['${effectivePrefix}stability'])!,
+          .read(DriftSqlType.double, data['${effectivePrefix}stability'])!,
       difficulty: attachedDatabase.typeMapping
-          .read(DriftSqlType.real, data['${effectivePrefix}difficulty'])!,
+          .read(DriftSqlType.double, data['${effectivePrefix}difficulty'])!,
       scheduledDays: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}scheduled_days'])!,
       reps: attachedDatabase.typeMapping
@@ -2349,7 +2349,7 @@ class HifzCardsCompanion extends UpdateCompanion<HifzCardRow> {
       map['due_at'] = Variable<int>(dueAt.value);
     }
     if (lastReviewAt.present) {
-      map['last_review_at'] = Variable<int?>(lastReviewAt.value);
+      map['last_review_at'] = Variable<int>(lastReviewAt.value);
     }
     return map;
   }
