@@ -34,7 +34,7 @@ class QuranSeeder {
     final rows = chapters.map((c) {
       final m = c as Map<String, dynamic>;
       return SurahsCompanion.insert(
-        id: Value(m['id'] as int),
+        id: m['id'] as int,
         nameArabic: m['name_arabic'] as String,
         nameSimple: m['name_simple'] as String,
         nameComplex: m['name_complex'] as String,
@@ -68,7 +68,7 @@ class QuranSeeder {
           first < (existing.firstVerseId.value) ||
           last > (existing.lastVerseId.value)) {
         byNumber[num] = JuzsCompanion.insert(
-          juzNumber: Value(num),
+          juzNumber: num,
           firstVerseId: first,
           lastVerseId: last,
           versesCount: count,
@@ -109,7 +109,7 @@ class QuranSeeder {
         final key = m['verse_key'] as String; // "2:255"
         final parts = key.split(':');
         return AyahsCompanion.insert(
-          id: Value(id),
+          id: id,
           surahNumber: int.parse(parts[0]),
           ayahNumber: int.parse(parts[1]),
           textUthmani: m['text_uthmani'] as String,
